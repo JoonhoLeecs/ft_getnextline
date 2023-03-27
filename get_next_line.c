@@ -6,7 +6,7 @@
 /*   By: joonhlee <joonhlee@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/26 14:41:51 by joonhlee          #+#    #+#             */
-/*   Updated: 2023/03/27 18:03:14 by joonhlee         ###   ########.fr       */
+/*   Updated: 2023/03/27 18:39:43 by joonhlee         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,12 +52,14 @@ char	*ft_strjoin_free_gnl(char *line, char *buffer, int rcheck)
 	cpy_len = ft_find_nchr_to_cpy(buffer, rcheck);
 	line_len = ft_strlen_gnl(line);
 	result = (char *)malloc((line_len + cpy_len + 1) * sizeof(char));
-	if (result != 0)
+	if (result == 0)
 	{
-		ft_memmove(result, line, line_len);
-		ft_memmove((result + line_len), buffer, cpy_len);
-		result[line_len + cpy_len] = '\0';
+		free(line);
+		return (0);
 	}
+	ft_memmove(result, line, line_len);
+	ft_memmove((result + line_len), buffer, cpy_len);
+	result[line_len + cpy_len] = '\0';
 	free(line);
 	return (result);
 }
@@ -66,7 +68,6 @@ int	ft_pack_remaining(char *buffer, int rcheck, size_t size, int stop)
 {
 	size_t	cpy_len;
 	size_t	i;
-
 
 	i = 0;
 	if (rcheck <= 0 || stop == 1)
@@ -102,7 +103,11 @@ char	*ft_check_remaining(char *buffer, int *rcheck, size_t size)
 	cpy_len = ft_find_nchr_to_cpy(buffer, buffer_len);
 	result = (char *) malloc((cpy_len + 1) * sizeof (char));
 	if (result == 0)
+	{
+		*rcheck = 0;
+		ft_pack_remaining(buffer, 0, size, 0);
 		return (0);
+	}
 	ft_memmove(result, buffer, cpy_len);
 	result[cpy_len] = '\0';
 	ft_pack_remaining(buffer, (cpy_len < buffer_len) * buffer_len, size, 0);

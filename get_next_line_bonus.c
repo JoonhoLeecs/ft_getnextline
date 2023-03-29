@@ -6,7 +6,7 @@
 /*   By: joonhlee <joonhlee@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/26 14:41:51 by joonhlee          #+#    #+#             */
-/*   Updated: 2023/03/28 18:16:49 by joonhlee         ###   ########.fr       */
+/*   Updated: 2023/03/29 10:17:10 by joonhlee         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ char	*get_next_line(int fd)
 	char				buffer[BUFFER_SIZE];
 	char				*line;
 
-	if (BUFFER_SIZE == 0)
+	if (BUFFER_SIZE <= 0)
 		return (0);
 	fd_node = ft_find_create_node(&head, fd);
 	if (fd_node == 0)

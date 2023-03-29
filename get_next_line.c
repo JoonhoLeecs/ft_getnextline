@@ -6,7 +6,7 @@
 /*   By: joonhlee <joonhlee@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/26 14:41:51 by joonhlee          #+#    #+#             */
-/*   Updated: 2023/03/27 18:39:43 by joonhlee         ###   ########.fr       */
+/*   Updated: 2023/03/29 10:17:54 by joonhlee         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,28 +14,31 @@
 
 char	*get_next_line(int fd)
 {
-	int			rcheck;
-	static char	buffer[BUFFER_SIZE];
-	char		*line;
-	size_t		size;
+	static t_remains	*head;
+	t_remains			*fd_node;
+	int					rcheck;
+	char				buffer[BUFFER_SIZE];
+	char				*line;
 
-	size = BUFFER_SIZE;
-	if (size == 0)
+	if (BUFFER_SIZE <= 0)
+		return (0);
+	fd_node = ft_find_create_node(&head, fd);
+	if (fd_node == 0)
 		return (0);
 	rcheck = BUFFER_SIZE;
-	line = ft_check_remaining(buffer, &rcheck, size);
+	line = ft_check_remains(fd_node, &rcheck);
 	while (rcheck == BUFFER_SIZE)
 	{
-		rcheck = read(fd, buffer, size);
+		rcheck = read(fd, buffer, BUFFER_SIZE);
 		line = ft_strjoin_free_gnl(line, buffer, rcheck);
-		rcheck = ft_pack_remaining(buffer, rcheck, size, (line == 0));
+		rcheck = ft_pack_rmn(buffer, rcheck, fd_node, &line);
 	}
+	if (line == 0 || fd_node->fd_remains == 0)
+		ft_clear_fd_node(&head, fd);
 	return (line);
 }
 
 // concaternate buffer at end of line.
-//  If line is null ptr, it means start of gnl, just strdup
-//  if line isn't null, it's result of malloc, free before return
 char	*ft_strjoin_free_gnl(char *line, char *buffer, int rcheck)
 {
 	size_t	cpy_len;
@@ -64,54 +67,66 @@ char	*ft_strjoin_free_gnl(char *line, char *buffer, int rcheck)
 	return (result);
 }
 
-int	ft_pack_remaining(char *buffer, int rcheck, size_t size, int stop)
+// if whole buffer isn't copied, pack it in fd_node->fd_remain for future use
+// return adjusted rcheck to determine to continue or break loop
+int	ft_pack_rmn(char *buffer, int rcheck, t_remains *node, char **line)
 {
 	size_t	cpy_len;
-	size_t	i;
+	char	*remains;
 
-	i = 0;
-	if (rcheck <= 0 || stop == 1)
-	{
-		while (i < size)
-			buffer[i++] = '\0';
+	if (rcheck <= 0 || *line == 0)
 		return (0);
-	}
 	cpy_len = ft_find_nchr_to_cpy(buffer, rcheck);
-	rcheck = cpy_len;
-	if ((size_t) rcheck == size && buffer[size - 1] == '\n')
-		rcheck = 0;
-	while (cpy_len + i < size)
+	if (cpy_len < (size_t) rcheck)
 	{
-		buffer[i] = buffer[cpy_len + i];
-		i++;
+		remains = (char *)malloc(rcheck - cpy_len + 1);
+		if (remains == 0)
+		{
+			free(*line);
+			*line = 0;
+			return (-1);
+		}
+		ft_memmove(remains, (buffer + cpy_len), rcheck - cpy_len);
+		remains[(size_t)rcheck - cpy_len] = '\0';
+		node->fd_remains = remains;
 	}
-	while (i < size)
-		buffer[i++] = '\0';
+	rcheck = cpy_len;
+	if ((size_t) rcheck == BUFFER_SIZE && buffer[BUFFER_SIZE - 1] == '\n')
+		rcheck = 0;
 	return (rcheck);
 }
 
-// check if remained input from previous call and return parsed
-char	*ft_check_remaining(char *buffer, int *rcheck, size_t size)
+// check if remained input from previous call exist and
+// return a new line and pack remains
+char	*ft_check_remains(t_remains *fd_node, int *rcheck)
 {
-	size_t	buffer_len;
+	size_t	prev_remain_len;
 	size_t	cpy_len;
 	char	*result;
+	char	*prev_remains;
 
-	if (buffer[0] == '\0')
+	prev_remains = fd_node->fd_remains;
+	fd_node->fd_remains = 0;
+	if (prev_remains == 0)
 		return (0);
-	buffer_len = ft_strlen_gnl(buffer);
-	cpy_len = ft_find_nchr_to_cpy(buffer, buffer_len);
+	prev_remain_len = ft_strlen_gnl(prev_remains);
+	cpy_len = ft_find_nchr_to_cpy(prev_remains, prev_remain_len);
 	result = (char *) malloc((cpy_len + 1) * sizeof (char));
 	if (result == 0)
-	{
-		*rcheck = 0;
-		ft_pack_remaining(buffer, 0, size, 0);
-		return (0);
-	}
-	ft_memmove(result, buffer, cpy_len);
+		return (ft_free_reset(rcheck, prev_remains));
+	ft_memmove(result, prev_remains, cpy_len);
 	result[cpy_len] = '\0';
-	ft_pack_remaining(buffer, (cpy_len < buffer_len) * buffer_len, size, 0);
-	if (cpy_len < buffer_len)
+	if (ft_pack_rmn(prev_remains, prev_remain_len, fd_node, &result) == -1)
+		return (ft_free_reset(rcheck, prev_remains));
+	free(prev_remains);
+	if (cpy_len < prev_remain_len)
 		*rcheck = 0;
 	return (result);
+}
+
+char	*ft_free_reset(int *rcheck, char *prev)
+{
+	free(prev);
+	*rcheck = 0;
+	return (0);
 }

@@ -6,11 +6,39 @@
 /*   By: joonhlee <joonhlee@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/26 14:43:27 by joonhlee          #+#    #+#             */
-/*   Updated: 2023/03/27 17:36:58 by joonhlee         ###   ########.fr       */
+/*   Updated: 2023/03/29 10:17:49 by joonhlee         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
+
+t_remains	*ft_find_create_node(t_remains **head, int fd)
+{
+	int			find_check;
+	t_remains	*fd_node;
+
+	find_check = 0;
+	fd_node = *head;
+	while (fd_node)
+	{
+		if (fd_node->fd == fd)
+		{
+			find_check = 1;
+			break ;
+		}
+		fd_node = fd_node->next;
+	}
+	if (find_check == 1)
+		return (fd_node);
+	fd_node = (t_remains *) malloc(sizeof(t_remains));
+	if (fd_node == 0)
+		return (0);
+	fd_node->fd = fd;
+	fd_node->fd_remains = (char *) 0;
+	fd_node->next = *head;
+	*head = fd_node;
+	return (fd_node);
+}
 
 size_t	ft_find_nchr_to_cpy(char *buffer, size_t size)
 {
@@ -58,4 +86,31 @@ void	*ft_memmove(void *dst, const void *src, size_t len)
 		i++;
 	}
 	return ((void *)ptr_dst);
+}
+
+void	ft_clear_fd_node(t_remains **head, int fd)
+{
+	t_remains	*prev_node;
+	t_remains	*node_to_clear;
+
+	prev_node = *head;
+	if (prev_node->fd == fd)
+	{
+		node_to_clear = prev_node;
+		*head = prev_node->next;
+	}
+	while (prev_node->next)
+	{
+		if (prev_node->next->fd == fd)
+		{
+			node_to_clear = prev_node->next;
+			prev_node->next = prev_node->next->next;
+			break ;
+		}
+		prev_node = prev_node->next;
+	}
+	free(node_to_clear->fd_remains);
+	node_to_clear->fd_remains = 0;
+	node_to_clear->fd = 0;
+	free(node_to_clear);
 }
